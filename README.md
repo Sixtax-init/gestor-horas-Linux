@@ -87,8 +87,6 @@ student-hours-tracking/
 ---
 
 
----
-
 ## 🗺️ Roadmap
 
 ### Próximas funcionalidades
@@ -107,9 +105,9 @@ student-hours-tracking/
 
 Este proyecto está bajo la licencia MIT. Consulta el archivo [LICENSE](LICENSE) para más detalles.
 
-```
+
 MIT License - Puedes usar, modificar y distribuir libremente con el debido reconocimiento.
-```
+
 
 <div align="center">
 
