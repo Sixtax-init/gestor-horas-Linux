@@ -98,25 +98,10 @@ student-hours-tracking/
 - [ ] 🔒 Autenticación avanzada con OAuth
 - [ ] 👨‍💼 Panel de administración completo para supervisores
 - [ ] 📧 Sistema de notificaciones por correo electrónico
-- [ ] 📱 Aplicación móvil nativa (React Native/Flutter)
 - [ ] 🌙 Modo oscuro
 
 ---
 
-## 🤝 Contribuciones
-
-¡Las contribuciones son bienvenidas! Si deseas colaborar:
-
-1. Haz un fork del proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add: nueva funcionalidad increíble'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-### Código de conducta
-Por favor, sé respetuoso y constructivo en todas las interacciones.
-
----
 
 ## 📄 Licencia
 
@@ -126,23 +111,10 @@ Este proyecto está bajo la licencia MIT. Consulta el archivo [LICENSE](LICENSE)
 MIT License - Puedes usar, modificar y distribuir libremente con el debido reconocimiento.
 ```
 
----
-
----
-
-## 🙏 Agradecimientos
-
-- A todos los estudiantes que inspiraron este proyecto
-- A la comunidad de código abierto por sus recursos
-- A los educadores comprometidos con la mejora continua
-
----
-
 <div align="center">
 
-**⭐ Si este proyecto te fue útil, considera darle una estrella en GitHub ⭐**
+** Si este proyecto te es útil, considera darle una estrella en GitHub **
 
-Hecho con ❤️ para facilitar el seguimiento de horas de servicio social
 
 © 2025 Student Hours Tracking
 
