@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestión de Tareas</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen" class="screen active">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <h1>Sistema de Gestión de Tareas</h1>
+                    <p>Ingresa tus credenciales para acceder</p>
+                </div>
+                <div class="login-content">
+                    <div class="form-group">
+                        <label for="matricula">Matrícula</label>
+                        <input type="text" id="matricula" placeholder="Ingresa tu matrícula">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="password">Contraseña</label>
+                        <input type="password" id="password" placeholder="Ingresa tu contraseña">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="userType">Tipo de Usuario</label>
+                        <select id="userType">
+                            <option value="estudiante">Estudiante</option>
+                            <option value="maestro">Maestro</option>
+                            <option value="administrador">Administrador</option>
+                        </select>
+                    </div>
+                    
+                    <button id="loginBtn" class="btn-primary">Iniciar Sesión</button>
+                    
+                    <div class="test-users">
+                        <p><strong>Usuarios de prueba:</strong></p>
+                        <p>Admin: admin123 / admin123</p>
+                        <p>Maestro: maestro001 / maestro123</p>
+                        <p>Estudiante: est001 / est123</p>
+                        <p>Estudiante Prueba: test001 / test123</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Screen -->
+    <div id="dashboardScreen" class="screen">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>Sistema de Gestión de Tareas</h1>
+                    <span id="userRole" class="role-badge"></span>
+                </div>
+                <div class="header-right">
+                    <span id="userName" class="user-name"></span>
+                    <button id="logoutBtn" class="btn-outline">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16,17 21,12 16,7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Navigation Tabs -->
+            <div class="tabs-container">
+                <div class="tabs-list">
+                    <button class="tab-trigger active" data-tab="home">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        </svg>
+                        Inicio
+                    </button>
+                    <button class="tab-trigger" data-tab="main">Panel Principal</button>
+                    <button class="tab-trigger" data-tab="chat">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                        </svg>
+                        Chat
+                    </button>
+                    <button class="tab-trigger" data-tab="notifications">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                            <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
+                        Notificaciones
+                    </button>
+                    <button class="tab-trigger" data-tab="profile">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        Perfil
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="tab-content active" id="homeTab">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 id="welcomeTitle">Bienvenido</h2>
+                        <p id="welcomeDescription">Sistema de gestión de tareas académicas</p>
+                    </div>
+                    <div class="card-content">
+                        <div id="statsGrid" class="stats-grid"></div>
+                        <div class="info-grid">
+                            <div class="card">
+                                <h3>Tu Rol</h3>
+                                <span id="roleInfo" class="role-badge"></span>
+                                <p id="roleDescription" class="role-desc"></p>
+                            </div>
+                            <div class="card">
+                                <h3>Estado de Cuenta</h3>
+                                <span class="status-badge active">Activo</span>
+                                <p id="registrationDate" class="registration-date"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="mainTab">
+                <div id="rolePanel" class="role-panel"></div>
+            </div>
+
+            <div class="tab-content" id="chatTab">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Chat del Sistema</h2>
+                        <p>Comunícate con otros usuarios</p>
+                    </div>
+                    <div class="card-content">
+                        <div class="chat-container">
+                            <div id="chatMessages" class="chat-messages"></div>
+                            <div class="chat-input-container">
+                                <input type="text" id="chatInput" placeholder="Escribe un mensaje...">
+                                <button id="sendMessage" class="btn-primary">Enviar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="notificationsTab">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Notificaciones</h2>
+                        <p>Mantente al día con las últimas actualizaciones</p>
+                    </div>
+                    <div class="card-content">
+                        <div id="notificationsList" class="notifications-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content" id="profileTab">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>Perfil de Usuario</h2>
+                        <p>Gestiona tu información personal</p>
+                    </div>
+                    <div class="card-content">
+                        <div id="profileInfo" class="profile-info"></div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="JS/database.js"></script>
+    <script src="JS/auth.js"></script>
+    <script src="JS/dashboard.js"></script>
+    <script src="JS/app.js"></script>
+</body>
+</html>
