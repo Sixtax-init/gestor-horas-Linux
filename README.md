@@ -55,7 +55,7 @@ student-hours-tracking/
 1. **Clona el repositorio**
    ```bash
    git clone hhttps://github.com/Sixtax-init/gestor-horas-Linux.git
-   cd student-hours-tracking
+   cd gestor-horas-linux
    ```
 
 2. **Abre el proyecto**
