@@ -234,21 +234,26 @@ class TaskManagementApp {
     this.closeModal() // Close any existing modal
 
     const modalOverlay = document.createElement("div")
-    modalOverlay.className = "modal-overlay"
+    modalOverlay.className = "modal-overlay active" // Agregar 'active' aquí
+    modalOverlay.id = "dynamicModal"
+
     modalOverlay.innerHTML = `
-      <div class="modal">
-        <div class="modal-header">
-          <h2>${title}</h2>
-          <button class="modal-close" onclick="window.app.closeModal()">&times;</button>
-        </div>
-        <div class="modal-content">
-          ${content}
-        </div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>${title}</h2>
+        <button class="modal-close" onclick="window.app.closeModal()">×</button>
       </div>
-    `
+      <div class="modal-body">
+        ${content}
+      </div>
+    </div>
+  `
 
     document.body.appendChild(modalOverlay)
     this.currentModal = modalOverlay
+
+    // Prevenir scroll del body
+    document.body.style.overflow = 'hidden'
 
     // Close on overlay click
     modalOverlay.addEventListener("click", (e) => {
@@ -258,14 +263,27 @@ class TaskManagementApp {
     })
 
     // Close on escape key
-    document.addEventListener("keydown", this.handleEscapeKey.bind(this))
+    const escapeHandler = (e) => {
+      if (e.key === "Escape") {
+        this.closeModal()
+        document.removeEventListener("keydown", escapeHandler)
+      }
+    }
+    document.addEventListener("keydown", escapeHandler)
   }
+
 
   closeModal() {
     if (this.currentModal) {
-      this.currentModal.remove()
-      this.currentModal = null
-      document.removeEventListener("keydown", this.handleEscapeKey.bind(this))
+      this.currentModal.classList.remove('active')
+      // Esperar a que termine la animación antes de remover
+      setTimeout(() => {
+        if (this.currentModal && this.currentModal.parentElement) {
+          this.currentModal.remove()
+        }
+        this.currentModal = null
+        document.body.style.overflow = 'auto'
+      }, 200)
     }
   }
 
@@ -306,18 +324,33 @@ class TaskManagementApp {
           <input type="date" id="taskDueDate" required>
         </div>
         
-        ${
-          currentUser.tipoUsuario !== "estudiante"
-            ? `
+        ${currentUser.tipoUsuario !== "estudiante"
+        ? `
+          <!-- Added assignment type selector -->
           <div class="form-group">
-            <label for="taskAssignee">Asignar a</label>
+            <label for="assignmentType">Asignar a</label>
+            <select id="assignmentType" onchange="window.app.toggleAssignmentType()">
+              <option value="individual">Usuario Individual</option>
+              <option value="group">Grupo/Taller</option>
+            </select>
+          </div>
+          
+          <div class="form-group" id="individualAssignmentGroup">
+            <label for="taskAssignee">Seleccionar Usuario</label>
             <select id="taskAssignee">
               <option value="${currentUser.matricula}">Yo mismo</option>
             </select>
           </div>
+          
+          <div class="form-group" id="groupAssignmentGroup" style="display: none;">
+            <label for="taskGroup">Seleccionar Grupo</label>
+            <select id="taskGroup">
+              <option value="">Selecciona un grupo...</option>
+            </select>
+          </div>
         `
-            : ""
-        }
+        : ""
+      }
         
         <!-- Added hours system to task creation form -->
         <div class="form-group">
@@ -347,6 +380,7 @@ class TaskManagementApp {
     // Load users for assignment (if not student)
     if (currentUser.tipoUsuario !== "estudiante") {
       this.loadUsersForAssignment()
+      this.loadGroupsForAssignment()
     }
 
     // Set minimum date to today
@@ -362,6 +396,51 @@ class TaskManagementApp {
         e.preventDefault()
         this.handleCreateTask()
       })
+    }
+  }
+
+  toggleAssignmentType() {
+    const assignmentType = document.getElementById("assignmentType")
+    const individualGroup = document.getElementById("individualAssignmentGroup")
+    const groupGroup = document.getElementById("groupAssignmentGroup")
+
+    if (assignmentType && individualGroup && groupGroup) {
+      if (assignmentType.value === "group") {
+        individualGroup.style.display = "none"
+        groupGroup.style.display = "block"
+      } else {
+        individualGroup.style.display = "block"
+        groupGroup.style.display = "none"
+      }
+    }
+  }
+
+  async loadGroupsForAssignment() {
+    try {
+      const currentUser = window.auth.getCurrentUser()
+      let groups = []
+
+      if (currentUser.tipoUsuario === "administrador") {
+        groups = await window.db.getAllGroups()
+      } else if (currentUser.tipoUsuario === "maestro") {
+        groups = await window.db.getGroupsByTeacher(currentUser.matricula)
+      }
+
+      const groupSelect = document.getElementById("taskGroup")
+      if (groupSelect && groups) {
+        groupSelect.innerHTML = '<option value="">Selecciona un grupo...</option>'
+
+        groups.forEach((group) => {
+          if (group.activo) {
+            const option = document.createElement("option")
+            option.value = group.id
+            option.textContent = `${group.nombreGrupo} (${group.tipoGrupo === "taller_curso" ? "Taller/Curso" : "Servicio Social"})`
+            groupSelect.appendChild(option)
+          }
+        })
+      }
+    } catch (error) {
+      console.error("[v0] Error loading groups:", error)
     }
   }
 
@@ -683,8 +762,6 @@ class TaskManagementApp {
     const description = document.getElementById("taskDescription").value
     const priority = document.getElementById("taskPriority").value
     const dueDate = document.getElementById("taskDueDate").value
-    const assigneeSelect = document.getElementById("taskAssignee")
-    const assignee = assigneeSelect ? assigneeSelect.value : window.auth.getCurrentUser().matricula
 
     const hasHours = document.getElementById("taskHasHours").checked
     const hoursAssigned = hasHours ? Number.parseInt(document.getElementById("taskHours").value) || 0 : 0
@@ -699,15 +776,65 @@ class TaskManagementApp {
       return
     }
 
+    const currentUser = window.auth.getCurrentUser()
+    const assignmentTypeSelect = document.getElementById("assignmentType")
+    const assignmentType = assignmentTypeSelect ? assignmentTypeSelect.value : "individual"
+
     const taskData = {
       title,
       description,
       priority,
       dueDate: new Date(dueDate),
-      userId: assignee,
       status: "pending",
       hasHours,
       hoursAssigned,
+      createdBy: currentUser.matricula,
+      attachments: [],
+    }
+
+    if (assignmentType === "group") {
+      const groupId = document.getElementById("taskGroup").value
+      if (!groupId) {
+        this.showAlert("Por favor, selecciona un grupo", "error")
+        return
+      }
+
+      // Assign to group - no specific userId needed
+      taskData.groupId = Number.parseInt(groupId)
+      taskData.userId = null // No individual assignment
+
+      // Get group info for notification
+      const group = await window.db.getGroupById(Number.parseInt(groupId))
+      if (group) {
+        // Create notifications for all students in the group
+        const students = group.alumnosAsignados || []
+        for (const studentId of students) {
+          const hoursMessage = hasHours ? ` (${hoursAssigned} horas de servicio social)` : " (sin horas asignadas)"
+          await this.createNotification({
+            userId: studentId,
+            title: "Nueva tarea de grupo asignada",
+            message: `Se ha asignado una tarea al grupo "${group.nombreGrupo}": ${title}${hoursMessage}`,
+            type: "task",
+          })
+        }
+      }
+    } else {
+      // Individual assignment
+      const assigneeSelect = document.getElementById("taskAssignee")
+      const assignee = assigneeSelect ? assigneeSelect.value : currentUser.matricula
+      taskData.userId = assignee
+      taskData.groupId = null
+
+      // Create notification for assigned user
+      if (assignee !== currentUser.matricula) {
+        const hoursMessage = hasHours ? ` (${hoursAssigned} horas de servicio social)` : " (sin horas asignadas)"
+        await this.createNotification({
+          userId: assignee,
+          title: "Nueva tarea asignada",
+          message: `Se te ha asignado la tarea: ${title}${hoursMessage}`,
+          type: "task",
+        })
+      }
     }
 
     const result = await this.createTask(taskData)
@@ -719,6 +846,184 @@ class TaskManagementApp {
         await window.dashboardManager.loadMainPanel()
       }
     }
+  }
+
+  async showTaskDetailsModal(taskId) {
+    try {
+      const task = await window.db.getTask(taskId)
+      if (!task) {
+        this.showAlert("Tarea no encontrada", "error")
+        return
+      }
+
+      const currentUser = window.auth.getCurrentUser()
+      const attachments = task.attachments || []
+
+      const content = `
+        <div class="task-details">
+          <div class="task-detail-section">
+            <h3>${task.title}</h3>
+            <p>${task.description || "Sin descripción"}</p>
+          </div>
+          
+          <div class="task-detail-section">
+            <div class="task-meta-grid">
+              <div class="meta-item">
+                <label>Estado:</label>
+                <span class="status-badge ${task.status}">${task.status}</span>
+              </div>
+              <div class="meta-item">
+                <label>Prioridad:</label>
+                <span class="priority-badge ${task.priority}">${task.priority}</span>
+              </div>
+              <div class="meta-item">
+                <label>Vencimiento:</label>
+                <span>${new Date(task.dueDate).toLocaleDateString()}</span>
+              </div>
+              ${task.hasHours
+          ? `
+                <div class="meta-item">
+                  <label>Horas:</label>
+                  <span class="hours-badge">${task.hoursAssigned} horas</span>
+                </div>
+              `
+          : ""
+        }
+            </div>
+          </div>
+          
+          <div class="task-detail-section">
+            <h4>Archivos Adjuntos</h4>
+            <div class="attachments-list">
+              ${attachments.length > 0
+          ? attachments
+            .map(
+              (att) => `
+                <div class="attachment-item">
+                  <span class="attachment-name">${att.fileName}</span>
+                  <span class="attachment-size">${this.formatFileSize(att.fileSize)}</span>
+                  <span class="attachment-date">${new Date(att.uploadedAt).toLocaleDateString()}</span>
+                  <button onclick="window.app.downloadAttachment(${taskId}, ${att.id})" class="btn-small">Descargar</button>
+                  ${currentUser.matricula === task.userId || currentUser.matricula === task.createdBy
+                  ? `
+                    <button onclick="window.app.removeAttachment(${taskId}, ${att.id})" class="btn-small btn-danger">Eliminar</button>
+                  `
+                  : ""
+                }
+                </div>
+              `,
+            )
+            .join("")
+          : '<p class="no-attachments">No hay archivos adjuntos</p>'
+        }
+            </div>
+            
+            ${currentUser.tipoUsuario === "estudiante" || currentUser.matricula === task.userId
+          ? `
+              <div class="upload-section">
+                <input type="file" id="taskAttachment" multiple>
+                <button onclick="window.app.uploadAttachment(${taskId})" class="btn-primary">Subir Archivo</button>
+              </div>
+            `
+          : ""
+        }
+          </div>
+        </div>
+      `
+
+      this.showModal(content, "Detalles de la Tarea")
+    } catch (error) {
+      console.error("[v0] Error loading task details:", error)
+      this.showAlert("Error al cargar los detalles de la tarea", "error")
+    }
+    
+  }
+
+  async uploadAttachment(taskId) {
+    const fileInput = document.getElementById("taskAttachment")
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+      this.showAlert("Por favor, selecciona un archivo", "error")
+      return
+    }
+
+    const currentUser = window.auth.getCurrentUser()
+
+    for (const file of fileInput.files) {
+      // Convert file to base64 for storage
+      const reader = new FileReader()
+      reader.onload = async (e) => {
+        const attachment = {
+          fileName: file.name,
+          fileSize: file.size,
+          fileType: file.type,
+          fileData: e.target.result,
+          uploadedBy: currentUser.matricula,
+          uploaderName: `${currentUser.nombre} ${currentUser.apellidos}`,
+        }
+
+        const result = await window.db.addTaskAttachment(taskId, attachment)
+        if (result.success) {
+          this.showAlert("Archivo subido correctamente", "success")
+          // Refresh modal
+          this.showTaskDetailsModal(taskId)
+        } else {
+          this.showAlert("Error al subir el archivo", "error")
+        }
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  async downloadAttachment(taskId, attachmentId) {
+    try {
+      const task = await window.db.getTask(taskId)
+      if (!task) {
+        this.showAlert("Tarea no encontrada", "error")
+        return
+      }
+
+      const attachment = (task.attachments || []).find((att) => att.id === attachmentId)
+      if (!attachment) {
+        this.showAlert("Archivo no encontrado", "error")
+        return
+      }
+
+      // Create download link
+      const link = document.createElement("a")
+      link.href = attachment.fileData
+      link.download = attachment.fileName
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      this.showAlert("Archivo descargado", "success")
+    } catch (error) {
+      console.error("[v0] Error downloading attachment:", error)
+      this.showAlert("Error al descargar el archivo", "error")
+    }
+  }
+
+  async removeAttachment(taskId, attachmentId) {
+    if (!confirm("¿Estás seguro de que deseas eliminar este archivo?")) {
+      return
+    }
+
+    const result = await window.db.removeTaskAttachment(taskId, attachmentId)
+    if (result.success) {
+      this.showAlert("Archivo eliminado correctamente", "success")
+      // Refresh modal
+      this.showTaskDetailsModal(taskId)
+    } else {
+      this.showAlert("Error al eliminar el archivo", "error")
+    }
+  }
+
+  formatFileSize(bytes) {
+    if (bytes === 0) return "0 Bytes"
+    const k = 1024
+    const sizes = ["Bytes", "KB", "MB", "GB"]
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + " " + sizes[i]
   }
 }
 

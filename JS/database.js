@@ -2,15 +2,15 @@
 class LocalDatabase {
   constructor() {
     this.dbName = "TaskManagementDB"
-    this.version = 3 // Incrementar versión para nuevas funcionalidades
+    this.version = 1
     this.db = null
-    this.isInitialized = false
-    this.initPromise = this.initializeDB()
+    this.isInitialized = false // Add initialization flag
+    this.initPromise = this.initializeDB() // Store initialization promise
   }
 
   // Initialize IndexedDB for complex data
   async initializeDB() {
-    if (this.isInitialized) return this.db
+    if (this.isInitialized) return this.db // Return if already initialized
 
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(this.dbName, this.version)
@@ -18,7 +18,7 @@ class LocalDatabase {
       request.onerror = () => reject(request.error)
       request.onsuccess = () => {
         this.db = request.result
-        this.isInitialized = true
+        this.isInitialized = true // Set initialization flag
         resolve(this.db)
         setTimeout(() => this.seedInitialData(), 100)
       }
@@ -33,13 +33,13 @@ class LocalDatabase {
           userStore.createIndex("tipoUsuario", "tipoUsuario", { unique: false })
         }
 
+        // Tasks store
         if (!db.objectStoreNames.contains("tasks")) {
           const taskStore = db.createObjectStore("tasks", { keyPath: "id", autoIncrement: true })
           taskStore.createIndex("userId", "userId", { unique: false })
           taskStore.createIndex("status", "status", { unique: false })
           taskStore.createIndex("priority", "priority", { unique: false })
-          taskStore.createIndex("groupId", "groupId", { unique: false })
-          taskStore.createIndex("createdBy", "createdBy", { unique: false })
+          taskStore.createIndex("groupId", "groupId", { unique: false }) // Added index for groupId
         }
 
         // Projects store
@@ -63,6 +63,7 @@ class LocalDatabase {
           messageStore.createIndex("timestamp", "timestamp", { unique: false })
         }
 
+        // Groups store
         if (!db.objectStoreNames.contains("groups")) {
           const groupStore = db.createObjectStore("groups", { keyPath: "id", autoIncrement: true })
           groupStore.createIndex("maestroResponsable", "maestroResponsable", { unique: false })
@@ -76,20 +77,6 @@ class LocalDatabase {
           assignmentStore.createIndex("groupId", "groupId", { unique: false })
           assignmentStore.createIndex("userId", "userId", { unique: false })
           assignmentStore.createIndex("assignedBy", "assignedBy", { unique: false })
-        }
-
-        if (!db.objectStoreNames.contains("taskEnrollments")) {
-          const enrollmentStore = db.createObjectStore("taskEnrollments", { keyPath: "id", autoIncrement: true })
-          enrollmentStore.createIndex("taskId", "taskId", { unique: false })
-          enrollmentStore.createIndex("userId", "userId", { unique: false })
-          enrollmentStore.createIndex("status", "status", { unique: false })
-        }
-
-        // Task files store
-        if (!db.objectStoreNames.contains("taskFiles")) {
-          const taskFilesStore = db.createObjectStore("taskFiles", { keyPath: "id", autoIncrement: true })
-          taskFilesStore.createIndex("taskId", "taskId", { unique: false })
-          taskFilesStore.createIndex("uploadedBy", "uploadedBy", { unique: false })
         }
       }
     })
@@ -114,28 +101,7 @@ class LocalDatabase {
     // Check if users already exist
     try {
       const existingUsers = await this.getAllUsers()
-      if (existingUsers.length > 0) {
-        // Check if test user exists, if not add it
-        const testUserExists = existingUsers.some(user => user.matricula === "test001")
-        if (!testUserExists) {
-          const testUser = {
-            matricula: "test001",
-            nombre: "Usuario",
-            apellidos: "Prueba",
-            email: "test@prueba.com",
-            tipoUsuario: "estudiante",
-            password: "test123",
-            fechaRegistro: new Date(),
-            activo: true,
-            horasAcumuladas: 0,
-            horasRequeridas: 480,
-            horasCompletadas: 0,
-          }
-          await this.addUser(testUser)
-          console.log("[v0] Test user added to existing database")
-        }
-        return
-      }
+      if (existingUsers.length > 0) return
     } catch (error) {
       console.log("[v0] Error checking existing users, proceeding with seeding")
     }
@@ -152,7 +118,7 @@ class LocalDatabase {
         fechaRegistro: new Date(),
         activo: true,
         horasAcumuladas: 0,
-        horasRequeridas: 480,
+        horasRequeridas: 480, // Required hours for service social
         horasCompletadas: 0,
       },
       {
@@ -181,19 +147,6 @@ class LocalDatabase {
         horasRequeridas: 480,
         horasCompletadas: 45,
       },
-      {
-        matricula: "test001",
-        nombre: "Usuario",
-        apellidos: "Prueba",
-        email: "test@prueba.com",
-        tipoUsuario: "estudiante",
-        password: "test123",
-        fechaRegistro: new Date(),
-        activo: true,
-        horasAcumuladas: 0,
-        horasRequeridas: 480,
-        horasCompletadas: 0,
-      },
     ]
 
     // Add users to database
@@ -201,482 +154,72 @@ class LocalDatabase {
       await this.addUser(user)
     }
 
-    const initialGroups = [
+    // Create initial tasks
+    const initialTasks = [
       {
-        nombre: "Servicio Social - Comunidad",
-        descripcion: "Actividades de servicio social en la comunidad local",
-        tipoGrupo: "servicio_social",
-        maestroResponsable: "maestro001",
-        fechaCreacion: new Date(),
-        activo: true,
-        alumnosAsignados: ["est001"],
+        title: "Completar proyecto de matemáticas",
+        description: "Resolver los ejercicios del capítulo 5",
+        userId: "est001",
+        status: "pending",
+        priority: "high",
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        hasHours: true,
+        hoursAssigned: 8,
+        hoursCompleted: 0,
+        groupId: 1, // Added groupId for task
       },
       {
-        nombre: "Taller de Programación Web",
-        descripcion: "Curso práctico de desarrollo web moderno",
-        tipoGrupo: "taller_curso",
-        maestroResponsable: "maestro001",
-        fechaCreacion: new Date(),
-        activo: true,
-        alumnosAsignados: [],
+        title: "Revisar tareas de estudiantes",
+        description: "Calificar las tareas entregadas esta semana",
+        userId: "maestro001",
+        status: "in-progress",
+        priority: "medium",
+        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        hasHours: false,
+        hoursAssigned: 0,
+        hoursCompleted: 0,
+        groupId: 2, // Added groupId for task
       },
     ]
 
-    for (const group of initialGroups) {
-      await this.addGroup(group)
+    for (const task of initialTasks) {
+      await this.addTask(task)
+    }
+
+    // Create initial notifications
+    const initialNotifications = [
+      {
+        userId: "est001",
+        title: "Nueva tarea asignada",
+        message: "Se te ha asignado una nueva tarea de matemáticas",
+        type: "task",
+        read: false,
+        createdAt: new Date(),
+      },
+      {
+        userId: "maestro001",
+        title: "Recordatorio",
+        message: "Tienes tareas pendientes por revisar",
+        type: "reminder",
+        read: false,
+        createdAt: new Date(),
+      },
+    ]
+
+    for (const notification of initialNotifications) {
+      await this.addNotification(notification)
     }
 
     console.log("[v0] Database seeded with initial data")
   }
 
-  async addTask(task) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["tasks"], "readwrite")
-      const store = transaction.objectStore("tasks")
-
-      // Agregar campos por defecto para nuevas funcionalidades
-      const enhancedTask = {
-        ...task,
-        maxStudents: task.maxStudents || null, // Límite máximo de estudiantes
-        currentEnrollments: task.currentEnrollments || 0, // Inscripciones actuales
-        hoursAssigned: task.hoursAssigned || 0, // Horas que otorga la tarea
-        isAvailable: task.isAvailable !== false, // Disponible por defecto
-        groupId: task.groupId || null, // ID del grupo al que pertenece
-        createdBy: task.createdBy || task.userId, // Quién creó la tarea
-        createdAt: task.createdAt || new Date(),
-        updatedAt: new Date(),
-      }
-
-      const request = store.add(enhancedTask)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getAvailableTasksForStudent(studentId) {
-    await this.ensureDBReady()
-    return new Promise(async (resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-
-      try {
-        // Obtener grupos del estudiante
-        const studentGroups = await this.getUserGroups(studentId)
-        const groupIds = studentGroups.map((g) => g.id)
-
-        // Obtener todas las tareas
-        const allTasks = await this.getAllTasks()
-
-        // Filtrar tareas disponibles
-        const availableTasks = allTasks.filter((task) => {
-          // Solo tareas de grupos del estudiante
-          if (task.groupId && !groupIds.includes(task.groupId)) return false
-
-          // Solo tareas disponibles
-          if (!task.isAvailable) return false
-
-          // Solo tareas que no estén llenas (si tienen límite)
-          if (task.maxStudents && task.currentEnrollments >= task.maxStudents) return false
-
-          // No mostrar tareas ya inscritas
-          return true
-        })
-
-        resolve(availableTasks)
-      } catch (error) {
-        reject(error)
-      }
-    })
-  }
-
-  async enrollStudentInTask(taskId, studentId) {
-    await this.ensureDBReady()
-    return new Promise(async (resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-
-      try {
-        // Verificar si ya está inscrito
-        const existingEnrollments = await this.getTaskEnrollments(taskId)
-        const alreadyEnrolled = existingEnrollments.some((e) => e.userId === studentId)
-
-        if (alreadyEnrolled) {
-          reject(new Error("El estudiante ya está inscrito en esta tarea"))
-          return
-        }
-
-        // Obtener la tarea
-        const task = await this.getTaskById(taskId)
-        if (!task) {
-          reject(new Error("Tarea no encontrada"))
-          return
-        }
-
-        // Verificar cupo disponible
-        if (task.maxStudents && task.currentEnrollments >= task.maxStudents) {
-          reject(new Error("La tarea ha alcanzado su cupo máximo"))
-          return
-        }
-
-        // Crear inscripción
-        const enrollment = {
-          taskId: taskId,
-          userId: studentId,
-          enrolledAt: new Date(),
-          status: "enrolled",
-        }
-
-        const transaction = this.db.transaction(["taskEnrollments", "tasks"], "readwrite")
-        const enrollmentStore = transaction.objectStore("taskEnrollments")
-        const taskStore = transaction.objectStore("tasks")
-
-        // Agregar inscripción
-        const enrollmentRequest = enrollmentStore.add(enrollment)
-
-        enrollmentRequest.onsuccess = () => {
-          // Actualizar contador de inscripciones en la tarea
-          const updatedTask = {
-            ...task,
-            currentEnrollments: (task.currentEnrollments || 0) + 1,
-            updatedAt: new Date(),
-          }
-
-          // Si alcanza el máximo, marcar como no disponible
-          if (task.maxStudents && updatedTask.currentEnrollments >= task.maxStudents) {
-            updatedTask.isAvailable = false
-          }
-
-          const taskUpdateRequest = taskStore.put(updatedTask)
-          taskUpdateRequest.onsuccess = () => resolve(enrollmentRequest.result)
-          taskUpdateRequest.onerror = () => reject(taskUpdateRequest.error)
-        }
-
-        enrollmentRequest.onerror = () => reject(enrollmentRequest.error)
-      } catch (error) {
-        reject(error)
-      }
-    })
-  }
-
-  async getTaskEnrollments(taskId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["taskEnrollments"], "readonly")
-      const store = transaction.objectStore("taskEnrollments")
-      const index = store.index("taskId")
-      const request = index.getAll(taskId)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getTaskById(taskId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["tasks"], "readonly")
-      const store = transaction.objectStore("tasks")
-      const request = store.get(taskId)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async completeTaskAndAddHours(taskId, studentId) {
-    await this.ensureDBReady()
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Obtener la tarea
-        const task = await this.getTaskById(taskId)
-        if (!task) {
-          reject(new Error("Tarea no encontrada"))
-          return
-        }
-
-        // Obtener el grupo de la tarea para verificar si suma horas
-        let shouldAddHours = false
-        if (task.groupId) {
-          const group = await this.getGroupById(task.groupId)
-          shouldAddHours = group && group.tipoGrupo === "servicio_social"
-        }
-
-        // Marcar tarea como completada
-        const updatedTask = {
-          ...task,
-          status: "completed",
-          completedAt: new Date(),
-          updatedAt: new Date(),
-        }
-
-        await this.updateTask(taskId, updatedTask)
-
-        // Si es servicio social, sumar horas al estudiante
-        if (shouldAddHours && task.hoursAssigned > 0) {
-          const result = await this.updateUserHours(studentId, task.hoursAssigned)
-          resolve({
-            success: true,
-            hoursAdded: task.hoursAssigned,
-            newTotal: result.newTotal,
-          })
-        } else {
-          resolve({
-            success: true,
-            hoursAdded: 0,
-            newTotal: null,
-          })
-        }
-      } catch (error) {
-        reject(error)
-      }
-    })
-  }
-
-  // Group operations
-  async addGroup(group) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["groups"], "readwrite")
-      const store = transaction.objectStore("groups")
-      const request = store.add({
-        ...group,
-        fechaCreacion: new Date(),
-        activo: true,
-        alumnosAsignados: group.alumnosAsignados || [],
-      })
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getAllGroups() {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["groups"], "readonly")
-      const store = transaction.objectStore("groups")
-      const request = store.getAll()
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getGroupById(groupId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["groups"], "readonly")
-      const store = transaction.objectStore("groups")
-      const request = store.get(groupId)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getGroupsByTeacher(teacherId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["groups"], "readonly")
-      const store = transaction.objectStore("groups")
-      const index = store.index("maestroResponsable")
-      const request = index.getAll(teacherId)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async updateGroup(groupId, groupData) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["groups"], "readwrite")
-      const store = transaction.objectStore("groups")
-      const request = store.put({ ...groupData, id: groupId })
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async deleteGroup(groupId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["groups"], "readwrite")
-      const store = transaction.objectStore("groups")
-      const request = store.delete(groupId)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async updateUser(matricula, userData) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["users"], "readwrite")
-      const store = transaction.objectStore("users")
-      const request = store.put({ ...userData, matricula })
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getTasksByUser(userId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["tasks"], "readonly")
-      const store = transaction.objectStore("tasks")
-      const index = store.index("userId")
-      const request = index.getAll(userId)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getAllTasks() {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["tasks"], "readonly")
-      const store = transaction.objectStore("tasks")
-      const request = store.getAll()
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getEnrolledTasksForStudent(studentId) {
-    await this.ensureDBReady()
-    try {
-      // Get all enrollments for the student
-      const transaction = this.db.transaction(["taskEnrollments", "tasks"], "readonly")
-      const enrollmentStore = transaction.objectStore("taskEnrollments")
-      const enrollmentIndex = enrollmentStore.index("userId")
-      const enrollmentRequest = enrollmentIndex.getAll(studentId)
-
-      const enrollments = await new Promise((resolve, reject) => {
-        enrollmentRequest.onsuccess = () => resolve(enrollmentRequest.result)
-        enrollmentRequest.onerror = () => reject(enrollmentRequest.error)
-      })
-
-      // Get groups of the student
-      const studentGroups = await this.getUserGroups(studentId)
-      const groupIds = studentGroups.map((g) => g.id)
-
-      // Get tasks for each enrollment and filter by group membership
-      const tasks = []
-      const taskStore = transaction.objectStore("tasks")
-
-      for (const enrollment of enrollments) {
-        const taskRequest = taskStore.get(enrollment.taskId)
-        const task = await new Promise((resolve, reject) => {
-          taskRequest.onsuccess = () => resolve(taskRequest.result)
-          taskRequest.onerror = () => reject(taskRequest.error)
-        })
-
-        if (task && task.groupId && groupIds.includes(task.groupId)) {
-          tasks.push(task)
-        }
-      }
-
-      return tasks
-    } catch (error) {
-      console.error("[v0] Error getting enrolled tasks for student:", error)
-      return []
-    }
-  }
-
-  async updateTask(taskId, taskData) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["tasks"], "readwrite")
-      const store = transaction.objectStore("tasks")
-      const request = store.put({ ...taskData, id: taskId })
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async deleteTask(taskId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["tasks"], "readwrite")
-      const store = transaction.objectStore("tasks")
-      const request = store.delete(taskId)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
+  // User operations
   async addUser(user) {
-    await this.ensureDBReady()
+    await this.ensureDBReady() // Wait for DB to be ready
     return new Promise((resolve, reject) => {
       if (!this.db) {
         reject(new Error("Database not initialized"))
@@ -692,7 +235,7 @@ class LocalDatabase {
   }
 
   async getUser(matricula) {
-    await this.ensureDBReady()
+    await this.ensureDBReady() // Wait for DB to be ready
     return new Promise((resolve, reject) => {
       if (!this.db) {
         reject(new Error("Database not initialized"))
@@ -708,7 +251,7 @@ class LocalDatabase {
   }
 
   async getAllUsers() {
-    await this.ensureDBReady()
+    await this.ensureDBReady() // Wait for DB to be ready
     return new Promise((resolve, reject) => {
       if (!this.db) {
         reject(new Error("Database not initialized"))
@@ -723,69 +266,346 @@ class LocalDatabase {
     })
   }
 
-  async updateUserHours(userId, hoursToAdd) {
+  async updateUser(matricula, userData) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["users"], "readwrite")
+      const store = transaction.objectStore("users")
+      const request = store.put({ ...userData, matricula })
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  // Task operations
+  async addTask(task) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["tasks"], "readwrite")
+      const store = transaction.objectStore("tasks")
+      const request = store.add(task)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async getTask(taskId) {
+    await this.ensureDBReady()
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["tasks"], "readonly")
+      const store = transaction.objectStore("tasks")
+      const request = store.get(taskId)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async getTasksByUser(userId) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["tasks"], "readonly")
+      const store = transaction.objectStore("tasks")
+      const index = store.index("userId")
+      const request = index.getAll(userId)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async getTasksByGroup(groupId) {
+    await this.ensureDBReady()
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["tasks"], "readonly")
+      const store = transaction.objectStore("tasks")
+      const request = store.getAll()
+
+      request.onsuccess = () => {
+        const allTasks = request.result
+        const groupTasks = allTasks.filter((task) => task.groupId === groupId)
+        resolve(groupTasks)
+      }
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async getAllTasksForStudent(userId) {
     await this.ensureDBReady()
     try {
-      const user = await this.getUser(userId)
-      if (!user) {
-        throw new Error("Usuario no encontrado")
+      // Get tasks assigned directly to the student
+      const directTasks = await this.getTasksByUser(userId)
+
+      // Get all groups the student belongs to
+      const studentGroups = await this.getUserGroups(userId)
+
+      // Get tasks from all groups
+      const groupTasks = []
+      for (const group of studentGroups) {
+        const tasks = await this.getTasksByGroup(group.id)
+        groupTasks.push(...tasks)
       }
 
-      const updatedHours = user.horasCompletadas + hoursToAdd
-      const updatedUser = {
-        ...user,
-        horasCompletadas: updatedHours,
-        horasAcumuladas: updatedHours,
-      }
+      // Combine and deduplicate tasks
+      const allTasks = [...directTasks, ...groupTasks]
+      const uniqueTasks = Array.from(new Map(allTasks.map((task) => [task.id, task])).values())
 
-      await this.updateUser(userId, updatedUser)
-      return { success: true, newTotal: updatedHours }
+      return uniqueTasks
     } catch (error) {
-      console.error("[v0] Error updating user hours:", error)
+      console.error("[v0] Error getting all tasks for student:", error)
+      return []
+    }
+  }
+
+  async getAllTasks() {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["tasks"], "readonly")
+      const store = transaction.objectStore("tasks")
+      const request = store.getAll()
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async updateTask(taskId, taskData) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["tasks"], "readwrite")
+      const store = transaction.objectStore("tasks")
+      const request = store.put({ ...taskData, id: taskId })
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async deleteTask(taskId) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["tasks"], "readwrite")
+      const store = transaction.objectStore("tasks")
+      const request = store.delete(taskId)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async addTaskAttachment(taskId, attachment) {
+    await this.ensureDBReady()
+    try {
+      const task = await this.getTask(taskId)
+      if (!task) {
+        throw new Error("Tarea no encontrada")
+      }
+
+      const attachments = task.attachments || []
+      attachments.push({
+        ...attachment,
+        uploadedAt: new Date(),
+        id: Date.now(),
+      })
+
+      await this.updateTask(taskId, { ...task, attachments })
+      return { success: true, attachments }
+    } catch (error) {
+      console.error("[v0] Error adding attachment:", error)
       return { success: false, error: error.message }
     }
   }
 
-  async getUserHoursStats(userId) {
+  async removeTaskAttachment(taskId, attachmentId) {
     await this.ensureDBReady()
     try {
-      const user = await this.getUser(userId)
-      if (!user) {
-        throw new Error("Usuario no encontrado")
+      const task = await this.getTask(taskId)
+      if (!task) {
+        throw new Error("Tarea no encontrada")
       }
 
-      const tasks = await this.getTasksByUser(userId)
-      const completedTasksWithHours = tasks.filter((task) => task.status === "completed" && task.hasHours)
-
-      const totalHoursFromTasks = completedTasksWithHours.reduce((sum, task) => sum + (task.hoursAssigned || 0), 0)
-
-      return {
-        horasCompletadas: user.horasCompletadas || 0,
-        horasRequeridas: user.horasRequeridas || 480,
-        porcentajeCompletado: Math.round(((user.horasCompletadas || 0) / (user.horasRequeridas || 480)) * 100),
-        tareasConHoras: completedTasksWithHours.length,
-        horasDestareas: totalHoursFromTasks,
-      }
+      const attachments = (task.attachments || []).filter((att) => att.id !== attachmentId)
+      await this.updateTask(taskId, { ...task, attachments })
+      return { success: true, attachments }
     } catch (error) {
-      console.error("[v0] Error getting hours stats:", error)
-      return {
-        horasCompletadas: 0,
-        horasRequeridas: 480,
-        porcentajeCompletado: 0,
-        tareasConHoras: 0,
-        horasDestareas: 0,
-      }
+      console.error("[v0] Error removing attachment:", error)
+      return { success: false, error: error.message }
     }
   }
 
+  // Project operations
+  async addProject(project) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["projects"], "readwrite")
+      const store = transaction.objectStore("projects")
+      const request = store.add(project)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async getAllProjects() {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["projects"], "readonly")
+      const store = transaction.objectStore("projects")
+      const request = store.getAll()
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  // Notification operations
+  async addNotification(notification) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["notifications"], "readwrite")
+      const store = transaction.objectStore("notifications")
+      const request = store.add(notification)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async getNotificationsByUser(userId) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["notifications"], "readonly")
+      const store = transaction.objectStore("notifications")
+      const index = store.index("userId")
+      const request = index.getAll(userId)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async markNotificationAsRead(notificationId) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["notifications"], "readwrite")
+      const store = transaction.objectStore("notifications")
+      const getRequest = store.get(notificationId)
+
+      getRequest.onsuccess = () => {
+        const notification = getRequest.result
+        if (notification) {
+          notification.read = true
+          const putRequest = store.put(notification)
+          putRequest.onsuccess = () => resolve(putRequest.result)
+          putRequest.onerror = () => reject(putRequest.error)
+        } else {
+          reject(new Error("Notification not found"))
+        }
+      }
+      getRequest.onerror = () => reject(getRequest.error)
+    })
+  }
+
+  // Message operations
+  async addMessage(message) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["messages"], "readwrite")
+      const store = transaction.objectStore("messages")
+      const request = store.add(message)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async getAllMessages() {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["messages"], "readonly")
+      const store = transaction.objectStore("messages")
+      const request = store.getAll()
+
+      request.onsuccess = () => {
+        // Sort by timestamp
+        const messages = request.result.sort((a, b) => a.timestamp - b.timestamp)
+        resolve(messages)
+      }
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  // Session management using localStorage with expiration
   setCurrentUser(user) {
     const sessionData = {
       user: user,
       timestamp: Date.now(),
-      expires: Date.now() + 24 * 60 * 60 * 1000,
+      expires: Date.now() + 24 * 60 * 60 * 1000, // 24 hours expiration
     }
     localStorage.setItem("currentUser", JSON.stringify(sessionData))
-    localStorage.setItem("sessionActive", "true")
+    localStorage.setItem("sessionActive", "true") // Add session flag
   }
 
   getCurrentUser() {
@@ -810,156 +630,24 @@ class LocalDatabase {
 
   clearCurrentUser() {
     localStorage.removeItem("currentUser")
-    localStorage.removeItem("sessionActive")
+    localStorage.removeItem("sessionActive") // Clear session flag
   }
 
   isSessionActive() {
     return localStorage.getItem("sessionActive") === "true" && this.getCurrentUser() !== null
   }
 
-  async assignUserToGroup(groupId, userId, assignedBy) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["groupAssignments"], "readwrite")
-      const store = transaction.objectStore("groupAssignments")
-
-      const index = store.index("userId")
-      const checkRequest = index.getAll(userId)
-
-      checkRequest.onsuccess = () => {
-        const existingAssignments = checkRequest.result
-        const existingGroupAssignment = existingAssignments.find((a) => a.groupId === groupId)
-
-        if (existingGroupAssignment) {
-          reject(new Error("El usuario ya está asignado a este grupo"))
-          return
-        }
-
-        const assignment = {
-          groupId: groupId,
-          userId: userId,
-          assignedBy: assignedBy,
-          assignedAt: new Date(),
-        }
-
-        const addRequest = store.add(assignment)
-        addRequest.onsuccess = () => {
-          this.getGroupById(groupId)
-            .then((group) => {
-              if (group) {
-                const updatedAlumnos = [...(group.alumnosAsignados || []), userId]
-                this.updateGroup(groupId, { ...group, alumnosAsignados: updatedAlumnos })
-                  .then(() => resolve(addRequest.result))
-                  .catch(reject)
-              } else {
-                resolve(addRequest.result)
-              }
-            })
-            .catch(reject)
-        }
-        addRequest.onerror = () => reject(addRequest.error)
-      }
-      checkRequest.onerror = () => reject(checkRequest.error)
-    })
+  // Settings management
+  setSetting(key, value) {
+    localStorage.setItem(`setting_${key}`, JSON.stringify(value))
   }
 
-  async removeUserFromGroup(groupId, userId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["groupAssignments"], "readwrite")
-      const store = transaction.objectStore("groupAssignments")
-
-      const index = store.index("userId")
-      const getRequest = index.getAll(userId)
-
-      getRequest.onsuccess = () => {
-        const assignments = getRequest.result
-        const assignmentToDelete = assignments.find((a) => a.groupId === groupId)
-
-        if (!assignmentToDelete) {
-          reject(new Error("Asignación no encontrada"))
-          return
-        }
-
-        const deleteRequest = store.delete(assignmentToDelete.id)
-        deleteRequest.onsuccess = () => {
-          this.getGroupById(groupId)
-            .then((group) => {
-              if (group) {
-                const updatedAlumnos = (group.alumnosAsignados || []).filter((id) => id !== userId)
-                this.updateGroup(groupId, { ...group, alumnosAsignados: updatedAlumnos })
-                  .then(() => resolve(deleteRequest.result))
-                  .catch(reject)
-              } else {
-                resolve(deleteRequest.result)
-              }
-            })
-            .catch(reject)
-        }
-        deleteRequest.onerror = () => reject(deleteRequest.error)
-      }
-      getRequest.onerror = () => reject(getRequest.error)
-    })
+  getSetting(key, defaultValue = null) {
+    const setting = localStorage.getItem(`setting_${key}`)
+    return setting ? JSON.parse(setting) : defaultValue
   }
 
-  async getGroupAssignments(groupId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["groupAssignments"], "readonly")
-      const store = transaction.objectStore("groupAssignments")
-      const index = store.index("groupId")
-      const request = index.getAll(groupId)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getUserGroups(userId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["groupAssignments"], "readonly")
-      const store = transaction.objectStore("groupAssignments")
-      const index = store.index("userId")
-      const request = index.getAll(userId)
-
-      request.onsuccess = async () => {
-        const assignments = request.result
-        const groups = []
-
-        for (const assignment of assignments) {
-          try {
-            const group = await this.getGroupById(assignment.groupId)
-            if (group) {
-              groups.push({ ...group, assignmentId: assignment.id })
-            }
-          } catch (error) {
-            console.error("[v0] Error loading group:", error)
-          }
-        }
-
-        resolve(groups)
-      }
-      request.onerror = () => reject(request.error)
-    })
-  }
-
+  // Statistics and analytics
   async getStatistics(userType, userId = null) {
     const stats = {}
 
@@ -1008,143 +696,9 @@ class LocalDatabase {
     return stats
   }
 
-  async addProject(project) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["projects"], "readwrite")
-      const store = transaction.objectStore("projects")
-      const request = store.add(project)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getAllProjects() {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["projects"], "readonly")
-      const store = transaction.objectStore("projects")
-      const request = store.getAll()
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async addNotification(notification) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["notifications"], "readwrite")
-      const store = transaction.objectStore("notifications")
-      const request = store.add(notification)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getNotificationsByUser(userId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["notifications"], "readonly")
-      const store = transaction.objectStore("notifications")
-      const index = store.index("userId")
-      const request = index.getAll(userId)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async markNotificationAsRead(notificationId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["notifications"], "readwrite")
-      const store = transaction.objectStore("notifications")
-      const getRequest = store.get(notificationId)
-
-      getRequest.onsuccess = () => {
-        const notification = getRequest.result
-        if (notification) {
-          notification.read = true
-          const putRequest = store.put(notification)
-          putRequest.onsuccess = () => resolve(putRequest.result)
-          putRequest.onerror = () => reject(putRequest.error)
-        } else {
-          reject(new Error("Notification not found"))
-        }
-      }
-      getRequest.onerror = () => reject(getRequest.error)
-    })
-  }
-
-  async addMessage(message) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["messages"], "readwrite")
-      const store = transaction.objectStore("messages")
-      const request = store.add(message)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getAllMessages() {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["messages"], "readonly")
-      const store = transaction.objectStore("messages")
-      const request = store.getAll()
-
-      request.onsuccess = () => {
-        const messages = request.result.sort((a, b) => a.timestamp - b.timestamp)
-        resolve(messages)
-      }
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  setSetting(key, value) {
-    localStorage.setItem(`setting_${key}`, JSON.stringify(value))
-  }
-
-  getSetting(key, defaultValue = null) {
-    const setting = localStorage.getItem(`setting_${key}`)
-    return setting ? JSON.parse(setting) : defaultValue
-  }
-
+  // Data export/import for backup
   async exportData() {
-    await this.ensureDBReady()
+    await this.ensureDBReady() // Wait for DB to be ready
     const data = {
       users: await this.getAllUsers(),
       tasks: await this.getAllTasks(),
@@ -1160,7 +714,7 @@ class LocalDatabase {
   }
 
   async getAllNotifications() {
-    await this.ensureDBReady()
+    await this.ensureDBReady() // Wait for DB to be ready
     return new Promise((resolve, reject) => {
       if (!this.db) {
         reject(new Error("Database not initialized"))
@@ -1175,35 +729,10 @@ class LocalDatabase {
     })
   }
 
-  async getAllGroupAssignments() {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["groupAssignments"], "readonly")
-      const store = transaction.objectStore("groupAssignments")
-      const request = store.getAll()
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
+  // Clear all data (for testing)
   async clearAllData() {
-    await this.ensureDBReady()
-    const stores = [
-      "users",
-      "tasks",
-      "projects",
-      "notifications",
-      "messages",
-      "groups",
-      "groupAssignments",
-      "taskEnrollments",
-      "taskFiles",
-    ]
+    await this.ensureDBReady() // Wait for DB to be ready
+    const stores = ["users", "tasks", "projects", "notifications", "messages", "groups", "groupAssignments"]
 
     for (const storeName of stores) {
       await new Promise((resolve, reject) => {
@@ -1224,196 +753,395 @@ class LocalDatabase {
     console.log("[v0] All data cleared")
   }
 
-  async deleteUser(matricula) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["users"], "readwrite")
-      const store = transaction.objectStore("users")
-      const request = store.delete(matricula)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async addTaskFile(taskId, file, uploadedBy) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-
-      // Crear store para archivos si no existe
-      if (!this.db.objectStoreNames.contains("taskFiles")) {
-        reject(new Error("Task files store not available"))
-        return
-      }
-
-      const transaction = this.db.transaction(["taskFiles"], "readwrite")
-      const store = transaction.objectStore("taskFiles")
-
-      const fileData = {
-        taskId: taskId,
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        uploadedBy: uploadedBy,
-        uploadedAt: new Date(),
-        fileData: file, // En un sistema real, esto sería una URL o referencia
-      }
-
-      const request = store.add(fileData)
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getTaskFiles(taskId) {
-    await this.ensureDBReady()
-    return new Promise((resolve, reject) => {
-      if (!this.db) {
-        reject(new Error("Database not initialized"))
-        return
-      }
-      const transaction = this.db.transaction(["taskFiles"], "readonly")
-      const store = transaction.objectStore("taskFiles")
-      const index = store.index("taskId")
-      const request = index.getAll(taskId)
-
-      request.onsuccess = () => resolve(request.result)
-      request.onerror = () => reject(request.error)
-    })
-  }
-
-  async getTaskEnrollmentsWithDetails(taskId) {
-    await this.ensureDBReady()
+  async updateUserHours(userId, hoursToAdd) {
+    await this.ensureDBReady() // Wait for DB to be ready
     try {
-      const enrollments = await this.getTaskEnrollments(taskId)
-      const enrollmentsWithDetails = []
-
-      for (const enrollment of enrollments) {
-        const user = await this.getUser(enrollment.userId)
-        if (user) {
-          enrollmentsWithDetails.push({
-            ...enrollment,
-            studentName: `${user.nombre} ${user.apellidos}`,
-            studentEmail: user.email,
-            studentMatricula: user.matricula,
-          })
-        }
+      const user = await this.getUser(userId)
+      if (!user) {
+        throw new Error("Usuario no encontrado")
       }
 
-      return enrollmentsWithDetails
+      const updatedHours = user.horasCompletadas + hoursToAdd
+      const updatedUser = {
+        ...user,
+        horasCompletadas: updatedHours,
+        horasAcumuladas: updatedHours, // Keep both for compatibility
+      }
+
+      await this.updateUser(userId, updatedUser)
+      return { success: true, newTotal: updatedHours }
     } catch (error) {
-      console.error("[v0] Error getting enrollment details:", error)
-      return []
+      console.error("[v0] Error updating user hours:", error)
+      return { success: false, error: error.message }
     }
   }
 
-  async createUser(userData) {
-    await this.ensureDBReady()
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Verificar si ya existe un usuario con esa matrícula o email
-        const existingUser = await this.getUser(userData.matricula)
-        if (existingUser) {
-          reject(new Error("Ya existe un usuario con esa matrícula"))
+  async getUserHoursStats(userId) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    try {
+      const user = await this.getUser(userId)
+      if (!user) {
+        throw new Error("Usuario no encontrado")
+      }
+
+      const tasks = await this.getTasksByUser(userId)
+      const completedTasksWithHours = tasks.filter((task) => task.status === "completed" && task.hasHours)
+
+      const totalHoursFromTasks = completedTasksWithHours.reduce((sum, task) => sum + (task.hoursAssigned || 0), 0)
+
+      return {
+        horasCompletadas: user.horasCompletadas || 0,
+        horasRequeridas: user.horasRequeridas || 480,
+        porcentajeCompletado: Math.round(((user.horasCompletadas || 0) / (user.horasRequeridas || 480)) * 100),
+        tareasConHoras: completedTasksWithHours.length,
+        horasDestareas: totalHoursFromTasks,
+      }
+    } catch (error) {
+      console.error("[v0] Error getting hours stats:", error)
+      return {
+        horasCompletadas: 0,
+        horasRequeridas: 480,
+        porcentajeCompletado: 0,
+        tareasConHoras: 0,
+        horasDestareas: 0,
+      }
+    }
+  }
+
+  // Group operations
+  async addGroup(group) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["groups"], "readwrite")
+      const store = transaction.objectStore("groups")
+      const request = store.add({
+        ...group,
+        fechaCreacion: new Date(),
+        activo: true,
+        alumnosAsignados: group.alumnosAsignados || [],
+      })
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async getAllGroups() {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["groups"], "readonly")
+      const store = transaction.objectStore("groups")
+      const request = store.getAll()
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async getGroupById(groupId) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["groups"], "readonly")
+      const store = transaction.objectStore("groups")
+      const request = store.get(groupId)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async getGroupsByTeacher(teacherId) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["groups"], "readonly")
+      const store = transaction.objectStore("groups")
+      const index = store.index("maestroResponsable")
+      const request = index.getAll(teacherId)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async updateGroup(groupId, groupData) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["groups"], "readwrite")
+      const store = transaction.objectStore("groups")
+      const request = store.put({ ...groupData, id: groupId })
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async deleteGroup(groupId) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["groups"], "readwrite")
+      const store = transaction.objectStore("groups")
+      const request = store.delete(groupId)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  // Group assignment operations
+  async assignUserToGroup(groupId, userId, assignedBy) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["groupAssignments"], "readwrite")
+      const store = transaction.objectStore("groupAssignments")
+
+      // Check if assignment already exists
+      const index = store.index("userId")
+      const checkRequest = index.getAll(userId)
+
+      checkRequest.onsuccess = () => {
+        const existingAssignments = checkRequest.result
+        const existingGroupAssignment = existingAssignments.find((a) => a.groupId === groupId)
+
+        if (existingGroupAssignment) {
+          reject(new Error("El usuario ya está asignado a este grupo"))
           return
         }
 
-        const allUsers = await this.getAllUsers()
-        const existingEmail = allUsers.find((u) => u.email === userData.email)
-        if (existingEmail) {
-          reject(new Error("Ya existe un usuario con ese email"))
+        const assignment = {
+          groupId: groupId,
+          userId: userId,
+          assignedBy: assignedBy,
+          assignedAt: new Date(),
+        }
+
+        const addRequest = store.add(assignment)
+        addRequest.onsuccess = () => {
+          // Update group with new student
+          this.getGroupById(groupId)
+            .then((group) => {
+              if (group) {
+                const updatedAlumnos = [...(group.alumnosAsignados || []), userId]
+                this.updateGroup(groupId, { ...group, alumnosAsignados: updatedAlumnos })
+                  .then(() => resolve(addRequest.result))
+                  .catch(reject)
+              } else {
+                resolve(addRequest.result)
+              }
+            })
+            .catch(reject)
+        }
+        addRequest.onerror = () => reject(addRequest.error)
+      }
+      checkRequest.onerror = () => reject(checkRequest.error)
+    })
+  }
+
+  async removeUserFromGroup(groupId, userId) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["groupAssignments"], "readwrite")
+      const store = transaction.objectStore("groupAssignments")
+
+      // Find and delete the assignment
+      const index = store.index("userId")
+      const getRequest = index.getAll(userId)
+
+      getRequest.onsuccess = () => {
+        const assignments = getRequest.result
+        const assignmentToDelete = assignments.find((a) => a.groupId === groupId)
+
+        if (!assignmentToDelete) {
+          reject(new Error("Asignación no encontrada"))
           return
         }
 
-        const newUser = {
-          ...userData,
-          fechaRegistro: new Date(),
-          activo: true,
-          horasAcumuladas: 0,
-          horasRequeridas: userData.tipoUsuario === "estudiante" ? 480 : 0,
-          horasCompletadas: 0,
+        const deleteRequest = store.delete(assignmentToDelete.id)
+        deleteRequest.onsuccess = () => {
+          // Update group by removing student
+          this.getGroupById(groupId)
+            .then((group) => {
+              if (group) {
+                const updatedAlumnos = (group.alumnosAsignados || []).filter((id) => id !== userId)
+                this.updateGroup(groupId, { ...group, alumnosAsignados: updatedAlumnos })
+                  .then(() => resolve(deleteRequest.result))
+                  .catch(reject)
+              } else {
+                resolve(deleteRequest.result)
+              }
+            })
+            .catch(reject)
         }
-
-        await this.addUser(newUser)
-        resolve(newUser)
-      } catch (error) {
-        reject(error)
+        deleteRequest.onerror = () => reject(deleteRequest.error)
       }
+      getRequest.onerror = () => reject(getRequest.error)
     })
   }
 
-  async getTasksByGroup(groupId) {
-    await this.ensureDBReady()
-    return new Promise(async (resolve, reject) => {
-      try {
-        const allTasks = await this.getAllTasks()
-        const groupTasks = allTasks.filter((task) => task.groupId === groupId)
-
-        // Agregar información de inscripciones a cada tarea
-        const tasksWithEnrollments = []
-        for (const task of groupTasks) {
-          const enrollments = await this.getTaskEnrollmentsWithDetails(task.id)
-          tasksWithEnrollments.push({
-            ...task,
-            enrollments: enrollments,
-            enrolledStudents: enrollments.map((e) => ({
-              matricula: e.studentMatricula,
-              nombre: e.studentName,
-              email: e.studentEmail,
-            })),
-          })
-        }
-
-        resolve(tasksWithEnrollments)
-      } catch (error) {
-        reject(error)
+  async getGroupAssignments(groupId) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
       }
+      const transaction = this.db.transaction(["groupAssignments"], "readonly")
+      const store = transaction.objectStore("groupAssignments")
+      const index = store.index("groupId")
+      const request = index.getAll(groupId)
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
     })
   }
 
-  async enrollStudentInTaskWithFile(taskId, studentId, file = null) {
-    await this.ensureDBReady()
-    return new Promise(async (resolve, reject) => {
-      try {
-        // Primero inscribir al estudiante
-        await this.enrollStudentInTask(taskId, studentId)
+  async getUserGroups(userId) {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["groupAssignments"], "readonly")
+      const store = transaction.objectStore("groupAssignments")
+      const index = store.index("userId")
+      const request = index.getAll(userId)
 
-        // Si hay archivo, guardarlo
-        if (file) {
-          await this.addTaskFile(taskId, file, studentId)
+      request.onsuccess = async () => {
+        const assignments = request.result
+        const groups = []
+
+        for (const assignment of assignments) {
+          try {
+            const group = await this.getGroupById(assignment.groupId)
+            if (group) {
+              groups.push({ ...group, assignmentId: assignment.id })
+            }
+          } catch (error) {
+            console.error("[v0] Error loading group:", error)
+          }
         }
 
-        resolve({ success: true, fileUploaded: !!file })
-      } catch (error) {
-        reject(error)
+        resolve(groups)
       }
+      request.onerror = () => reject(request.error)
     })
   }
 
-  async getAvailableStudentsForGroup(groupId) {
+  // Enhanced export with groups
+  async getAllGroupAssignments() {
+    await this.ensureDBReady() // Wait for DB to be ready
+    return new Promise((resolve, reject) => {
+      if (!this.db) {
+        reject(new Error("Database not initialized"))
+        return
+      }
+      const transaction = this.db.transaction(["groupAssignments"], "readonly")
+      const store = transaction.objectStore("groupAssignments")
+      const request = store.getAll()
+
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+  }
+
+  async getTaskSubmissionStats(taskId) {
     await this.ensureDBReady()
     try {
-      const allUsers = await this.getAllUsers()
-      const students = allUsers.filter((user) => user.tipoUsuario === "estudiante" && user.activo)
+      const task = await this.getTask(taskId)
+      if (!task) {
+        throw new Error("Tarea no encontrada")
+      }
 
-      const group = await this.getGroupById(groupId)
-      const assignedStudents = group ? group.alumnosAsignados || [] : []
+      let students = []
 
-      // Filtrar estudiantes que no están asignados a este grupo
-      const availableStudents = students.filter((student) => !assignedStudents.includes(student.matricula))
+      // If task is assigned to a group, get all students in that group
+      if (task.groupId) {
+        const group = await this.getGroupById(task.groupId)
+        if (group && group.alumnosAsignados) {
+          students = await Promise.all(
+            group.alumnosAsignados.map(async (userId) => {
+              const user = await this.getUser(userId)
+              return user
+            }),
+          )
+          students = students.filter((u) => u !== undefined)
+        }
+      } else if (task.userId) {
+        // If task is assigned to individual student
+        const user = await this.getUser(task.userId)
+        if (user) students = [user]
+      }
 
-      return availableStudents
+      // Get submission status for each student
+      const submissions = students.map((student) => {
+        const studentAttachments = (task.attachments || []).filter((att) => att.uploadedBy === student.matricula)
+
+        return {
+          studentId: student.matricula,
+          studentName: `${student.nombre} ${student.apellidos}`,
+          studentEmail: student.email,
+          hasSubmitted: studentAttachments.length > 0,
+          attachments: studentAttachments,
+          submissionDate: studentAttachments.length > 0 ? studentAttachments[0].uploadedAt : null,
+        }
+      })
+
+      const totalStudents = students.length
+      const submittedCount = submissions.filter((s) => s.hasSubmitted).length
+      const pendingCount = totalStudents - submittedCount
+
+      return {
+        task,
+        totalStudents,
+        submittedCount,
+        pendingCount,
+        submissionPercentage: totalStudents > 0 ? Math.round((submittedCount / totalStudents) * 100) : 0,
+        submissions,
+        allowsAttachments: task.allowAttachments || false,
+      }
     } catch (error) {
-      console.error("[v0] Error getting available students:", error)
-      return []
+      console.error("[v0] Error getting task submission stats:", error)
+      return {
+        task: null,
+        totalStudents: 0,
+        submittedCount: 0,
+        pendingCount: 0,
+        submissionPercentage: 0,
+        submissions: [],
+        allowsAttachments: false,
+      }
     }
   }
 }
