@@ -54,7 +54,7 @@ student-hours-tracking/
 
 1. **Clona el repositorio**
    ```bash
-   git clone hhttps://github.com/Sixtax-init/gestor-horas-Linux.git
+   git clone https://github.com/Sixtax-init/gestor-horas-Linux.git
    cd gestor-horas-linux
    ```
 
